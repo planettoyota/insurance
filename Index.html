@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Planet Toyota - Workshop Insurance Capture</title>
+<style>
+  :root { --toyota-red: #EB0A1E; --dark: #1a1a1a; --gray: #6b7280; --light-bg: #f5f6f8; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--light-bg); color: var(--dark); padding-bottom: 40px; }
+  header { background: var(--toyota-red); color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; }
+  header h1 { font-size: 17px; font-weight: 600; }
+  header .staff-name { font-size: 13px; opacity: 0.9; }
+  .container { max-width: 480px; margin: 0 auto; padding: 16px; }
+  .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .login-box { max-width: 320px; margin: 60px auto; text-align: center; }
+  .login-box h2 { margin-bottom: 20px; }
+  input, select { width: 100%; padding: 13px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; margin-bottom: 14px; }
+  label { font-size: 13px; color: var(--gray); display: block; margin-bottom: 5px; font-weight: 600; }
+  .field-group { margin-bottom: 4px; }
+  button { width: 100%; padding: 14px; background: var(--toyota-red); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
+  button:disabled { background: #ccc; }
+  .radio-row { display: flex; gap: 10px; margin-bottom: 14px; }
+  .radio-pill { flex: 1; padding: 12px; text-align: center; border-radius: 8px; border: 2px solid #d1d5db; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--gray); }
+  .radio-pill.active { border-color: var(--toyota-red); background: #fef2f2; color: var(--toyota-red); }
+  .photo-upload { border: 2px dashed #d1d5db; border-radius: 10px; padding: 16px; text-align: center; margin-bottom: 14px; position: relative; }
+  .photo-upload.filled { border-color: #059669; background: #f0fdf4; }
+  .photo-upload input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .photo-upload .ph-label { font-size: 13px; color: var(--gray); font-weight: 600; }
+  .photo-upload.filled .ph-label { color: #059669; }
+  .photo-upload img { max-width: 100%; max-height: 120px; border-radius: 8px; margin-top: 8px; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--dark); color: white; padding: 12px 24px; border-radius: 8px; font-size: 14px; display: none; z-index: 100; }
+  .req { color: var(--toyota-red); }
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-box">
+  <h2>🔧 Workshop Insurance</h2>
+  <p style="color:var(--gray); margin-bottom:20px; font-size:14px;">Planet Toyota</p>
+  <select id="staffSelect"><option>Loading staff...</option></select>
+  <input type="password" id="pinInput" placeholder="Enter PIN" maxlength="6">
+  <button onclick="login()">Login</button>
+</div>
+
+<div id="mainScreen" style="display:none;">
+  <header>
+    <h1>Workshop Insurance Capture</h1>
+    <span class="staff-name" id="loggedInName"></span>
+  </header>
+  <div class="container">
+    <div class="card">
+
+      <div class="field-group"><label>Customer Name <span class="req">*</span></label><input id="customerName"></div>
+      <div class="field-group"><label>Customer Mobile Number <span class="req">*</span></label><input id="mobile" type="tel" maxlength="10"></div>
+      <div class="field-group"><label>Alternate / WhatsApp Number</label><input id="altMobile" type="tel" maxlength="10"></div>
+
+      <div class="field-group"><label>Vehicle Model <span class="req">*</span></label>
+        <select id="vehicleModel"><option value="">Loading...</option></select>
+      </div>
+      <div class="field-group"><label>Vehicle Registration Number <span class="req">*</span></label>
+        <input id="regNo" placeholder="e.g. HR39 AB 1234" style="text-transform:uppercase;"></div>
+      <div class="field-group"><label>Vehicle Chassis Number <span class="req">*</span></label><input id="chassisNo"></div>
+
+      <label>Insurance Type <span class="req">*</span></label>
+      <div class="radio-row">
+        <div class="radio-pill active" data-val="TP" onclick="selectRadio(this,'insuranceType')">Toyota Protect (TP)</div>
+        <div class="radio-pill" data-val="NTP" onclick="selectRadio(this,'insuranceType')">Non Toyota Protect (NTP)</div>
+      </div>
+
+      <div class="field-group"><label>Insurance Co. Name <span class="req">*</span></label>
+        <select id="insurerName"><option value="">Loading...</option></select>
+      </div>
+
+      <div class="field-group"><label>Insurance OD Start Date <span class="req">*</span></label><input id="odStartDate" type="date"></div>
+      <div class="field-group"><label>Insurance OD End Date <span class="req">*</span></label><input id="odEndDate" type="date"></div>
+
+      <label>Insurance Photo Upload <span class="req">*</span></label>
+      <div class="photo-upload" id="insPhotoBox">
+        <span class="ph-label" id="insPhotoLabel">📷 Tap to capture / upload insurance copy</span>
+        <input type="file" id="insurancePhoto" accept="image/*" capture="environment" onchange="previewPhoto(this,'insPhotoBox','insPhotoLabel','Insurance photo added ✓')">
+      </div>
+
+      <label>RC Photo Upload <span class="req">*</span></label>
+      <div class="photo-upload" id="rcPhotoBox">
+        <span class="ph-label" id="rcPhotoLabel">📷 Tap to capture / upload RC</span>
+        <input type="file" id="rcPhoto" accept="image/*" capture="environment" onchange="previewPhoto(this,'rcPhotoBox','rcPhotoLabel','RC photo added ✓')">
+      </div>
+
+      <button onclick="submitEntry()" id="submitBtn" style="margin-top:10px;">Save Entry</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  var API_URL = 'https://script.google.com/macros/s/AKfycbyWTxE-xf9mwTIaZImCMHpL6LwEtUfx7gnLZWLt3P6WLaCYIG9h5lDjsa6fZNbnIq3X/exec';
+  var currentStaff = null;
+  var staffList = [];
+  var selections = { insuranceType: 'TP' };
+  var photoData = { insurancePhoto: null, rcPhoto: null };
+
+  function jsonpRequest(action, extraParams) {
+    return new Promise(function(resolve, reject) {
+      var callbackName = 'cb_' + Date.now() + Math.floor(Math.random()*1000);
+      window[callbackName] = function(data) { resolve(data); delete window[callbackName]; document.body.removeChild(script); };
+      var params = 'action=' + action + '&callback=' + callbackName + (extraParams || '');
+      var script = document.createElement('script');
+      script.src = API_URL + '?' + params;
+      script.onerror = function() { reject('Network error'); delete window[callbackName]; };
+      document.body.appendChild(script);
+    });
+  }
+
+  function postRequest(payload) {
+    return fetch(API_URL, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) })
+      .then(function(res) { return res.json(); });
+  }
+
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg; t.style.display = 'block';
+    setTimeout(function(){ t.style.display = 'none'; }, 2500);
+  }
+
+  window.onload = function() {
+    jsonpRequest('getStaff').then(function(data) {
+      staffList = data.staff || [];
+      var sel = document.getElementById('staffSelect');
+      sel.innerHTML = staffList.map(function(s) { return '<option value="' + s.Name + '">' + s.Name + '</option>'; }).join('');
+    }).catch(function() { showToast('Could not load staff list'); });
+
+    jsonpRequest('getConfig').then(function(data) {
+      var modelSel = document.getElementById('vehicleModel');
+      modelSel.innerHTML = '<option value="">Select model</option>' + (data.vehicleModels || []).map(function(m) { return '<option value="' + m + '">' + m + '</option>'; }).join('');
+      var insSel = document.getElementById('insurerName');
+      insSel.innerHTML = '<option value="">Select insurer</option>' + (data.insuranceCompanies || []).map(function(c) { return '<option value="' + c + '">' + c + '</option>'; }).join('');
+    }).catch(function() { showToast('Could not load dropdown lists'); });
+  };
+
+  function login() {
+    var name = document.getElementById('staffSelect').value;
+    var pin = document.getElementById('pinInput').value;
+    var staff = staffList.find(function(s) { return s.Name === name; });
+    if (!staff || String(staff.PIN) !== pin) { showToast('Incorrect PIN'); return; }
+    currentStaff = staff;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('mainScreen').style.display = 'block';
+    document.getElementById('loggedInName').textContent = staff.Name;
+  }
+
+  function selectRadio(el, group) {
+    el.parentElement.querySelectorAll('.radio-pill').forEach(function(p) { p.classList.remove('active'); });
+    el.classList.add('active');
+    selections[group] = el.dataset.val;
+  }
+
+  function previewPhoto(input, boxId, labelId, successText) {
+    var file = input.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var key = input.id;
+      photoData[key] = { base64: e.target.result, mimeType: file.type, fileName: file.name };
+      document.getElementById(boxId).classList.add('filled');
+      document.getElementById(labelId).textContent = successText;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function submitEntry() {
+    var customerName = document.getElementById('customerName').value.trim();
+    var mobile = document.getElementById('mobile').value.trim();
+    var vehicleModel = document.getElementById('vehicleModel').value;
+    var regNo = document.getElementById('regNo').value.trim();
+    var chassisNo = document.getElementById('chassisNo').value.trim();
+    var insurerName = document.getElementById('insurerName').value;
+    var odStartDate = document.getElementById('odStartDate').value;
+    var odEndDate = document.getElementById('odEndDate').value;
+
+    if (!customerName || !mobile || !vehicleModel || !regNo || !chassisNo || !insurerName || !odStartDate || !odEndDate) {
+      showToast('Please fill all mandatory fields'); return;
+    }
+    if (!photoData.insurancePhoto || !photoData.rcPhoto) {
+      showToast('Both Insurance and RC photos are required'); return;
+    }
+
+    var btn = document.getElementById('submitBtn');
+    btn.disabled = true; btn.textContent = 'Uploading photos...';
+
+    Promise.all([
+      postRequest({ action: 'uploadPhoto', base64: photoData.insurancePhoto.base64, mimeType: photoData.insurancePhoto.mimeType, fileName: regNo + '_insurance_' + Date.now() + '.jpg' }),
+      postRequest({ action: 'uploadPhoto', base64: photoData.rcPhoto.base64, mimeType: photoData.rcPhoto.mimeType, fileName: regNo + '_rc_' + Date.now() + '.jpg' })
+    ]).then(function(results) {
+      if (!results[0].success || !results[1].success) { throw new Error('Photo upload failed'); }
+      btn.textContent = 'Saving entry...';
+      return postRequest({
+        action: 'addEntry',
+        source: 'Workshop',
+        customerName: customerName,
+        mobile: mobile,
+        altMobile: document.getElementById('altMobile').value.trim(),
+        vehicleModel: vehicleModel,
+        regNo: regNo.toUpperCase(),
+        chassisNo: chassisNo,
+        insuranceType: selections.insuranceType,
+        insurerName: insurerName,
+        odStartDate: odStartDate,
+        odEndDate: odEndDate,
+        insurancePhotoUrl: results[0].url,
+        rcPhotoUrl: results[1].url,
+        capturedBy: currentStaff.Name
+      });
+    }).then(function(data) {
+      btn.disabled = false; btn.textContent = 'Save Entry';
+      if (data.success) {
+        showToast('✓ Entry saved successfully');
+        resetForm();
+      } else { showToast('Error: ' + (data.error || 'unknown')); }
+    }).catch(function(err) {
+      btn.disabled = false; btn.textContent = 'Save Entry';
+      showToast('Error: ' + err.message);
+    });
+  }
+
+  function resetForm() {
+    ['customerName','mobile','altMobile','regNo','chassisNo','odStartDate','odEndDate'].forEach(function(id) { document.getElementById(id).value = ''; });
+    document.getElementById('vehicleModel').value = '';
+    document.getElementById('insurerName').value = '';
+    photoData = { insurancePhoto: null, rcPhoto: null };
+    document.getElementById('insurancePhoto').value = '';
+    document.getElementById('rcPhoto').value = '';
+    document.getElementById('insPhotoBox').classList.remove('filled');
+    document.getElementById('rcPhotoBox').classList.remove('filled');
+    document.getElementById('insPhotoLabel').textContent = '📷 Tap to capture / upload insurance copy';
+    document.getElementById('rcPhotoLabel').textContent = '📷 Tap to capture / upload RC';
+  }
+</script>
+</body>
+</html>
